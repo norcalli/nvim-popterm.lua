@@ -1,10 +1,10 @@
-local nvim = require 'popterm/nvim'
+local nvim = require 'nvim'
 
 local M = {}
 
 local terminals = {}
 
-local function buf_is_terminal(bufnr)
+local function buf_is_popterm(bufnr)
 	for _, term in ipairs(terminals) do
 		if term.bufnr == bufnr then
 			return true
@@ -16,12 +16,47 @@ end
 local pop_win = -1
 
 function IS_POPTERM()
-	return buf_is_terminal(nvim.get_current_buf())
+	return buf_is_popterm(nvim.get_current_buf())
 end
 
+function M._enforce_popterm_constraints()
+	local curbuf = nvim.get_current_buf()
+	local curwin = nvim.get_current_win()
+	if curwin == pop_win and not buf_is_popterm(curbuf) then
+		nvim.win_close(pop_win, false)
+		nvim.ex.vsplit()
+		nvim.set_current_buf(curbuf)
+	end
+end
+
+local config = {
+	label_timeout = 5e2;
+	label_colors = { ctermfg = White; ctermbg = Red; guifg = "#eee"; guibg = "#a00000" };
+	label_format = "POPTERM %d";
+	window_width = 0.9;
+	window_height = 0.5;
+
+}
+
 local namespace = nvim.create_namespace('')
-nvim.ex.highlight("PopTermLabel ctermfg=White ctermbg=Red guifg=#eee guibg=#a00000")
 -- local namespace_clear_command = string.format("autocmd InsertCharPre <buffer> ++once lua vim.api.nvim_buf_clear_namespace(0, %d, 0, -1)", namespace)
+
+local function init()
+	do
+		local res = {}
+		for k, v in pairs(config.label_colors) do
+			table.insert(res, k.."="..v)
+		end
+		nvim.ex.highlight("PopTermLabel ", res)
+	end
+
+	nvim.ex.augroup("PopTerm")
+	nvim.ex.autocmd_()
+	nvim.ex.autocmd("BufEnter * lua require'popterm'._enforce_popterm_constraints()")
+	nvim.ex.augroup("END")
+end
+
+init()
 
 function POPTERM(i)
 	assert(type(i) == 'number', "need an index for POPTERM")
@@ -36,8 +71,8 @@ function POPTERM(i)
 	-- Hide the current terminal
 	if curbufnr == term_buf then
 		-- TODO focus last win?
-		-- TODO save layout on close and restore?
-		nvim.win_close(0, false)
+		-- TODO save layout on close and restore for each terminal?
+		nvim.win_close(pop_win, false)
 	else
 		-- Create/switch the window if it's closed.
 
@@ -55,18 +90,15 @@ function POPTERM(i)
 		end
 
 		-- If the window is already a terminal window, then just switch buffers.
-		if buf_is_terminal(nvim.get_current_buf()) then
+		if buf_is_popterm(nvim.get_current_buf()) then
 			nvim.set_current_buf(term_buf)
 		else
-			-- nvim.ex.autocmd("WinLeave", ("<buffer=%d>"):format(buf), lua_callback_cmd(function()
-			-- 	nvim.win_close(win, true)
-			-- end))
 			local uis = nvim.list_uis()
 
 			local opts = {
 				relative = 'editor';
-				width = 0.9;
-				height = 0.5;
+				width = config.window_width;
+				height = config.window_height;
 				anchor = 'NW';
 				style = 'minimal';
 				focusable = false;
@@ -88,20 +120,13 @@ function POPTERM(i)
 		end
 		vim.schedule(nvim.ex.startinsert)
 
-		local label = string.format("POPTERM %d", i)
+		local label = string.format(config.label_format, i)
 		nvim.buf_clear_namespace(term_buf, namespace, 0, -1)
 		local label_line = math.max(nvim.buf_line_count(term_buf) - 2, 0)
 		nvim.buf_set_virtual_text(term_buf, namespace, label_line, {{label, 'PopTermLabel'}}, {})
 
-		-- nvim.buf_attach(term_buf, false, {
-		-- 	on_lines = function()
-		-- 		nvim.buf_clear_namespace(term_buf, namespace, 0, -1)
-		-- 		return true
-		-- 	end;
-		-- })
-
 		local timer = vim.loop.new_timer()
-		timer:start(500, 0, vim.schedule_wrap(function()
+		timer:start(config.label_timeout, 0, vim.schedule_wrap(function()
 			nvim.buf_clear_namespace(term_buf, namespace, 0, -1)
 			timer:close()
 		end))
