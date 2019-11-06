@@ -1,4 +1,4 @@
-local nvim = require 'nvim'
+local nvim = require 'popterm/nvim'
 
 local M = {}
 
