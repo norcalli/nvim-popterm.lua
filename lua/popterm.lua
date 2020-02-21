@@ -72,6 +72,13 @@ local function flash_label(bufnr, label)
 	end))
 end
 
+local function close_popwin()
+	if pop_win ~= -1 then
+		api.nvim_win_close(pop_win, false)
+		pop_win = -1
+	end
+end
+
 function POPTERM(i)
 	assert(type(i) == 'number', "need an index for POPTERM")
 	local terminal = terminals[i]
@@ -85,7 +92,7 @@ function POPTERM(i)
 	if curbufnr == terminal.bufnr then
 		-- TODO focus last win?
 		-- TODO save layout on close and restore for each terminal?
-		api.nvim_win_close(pop_win, false)
+		close_popwin()
 	else
 		-- Create/switch the window if it's closed.
 
