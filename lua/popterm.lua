@@ -6,7 +6,7 @@ local M = {}
 local terminals = {}
 
 local function buf_is_popterm(bufnr)
-	for _, term in ipairs(terminals) do
+	for _, term in pairs(terminals) do
 		if term.bufnr == bufnr then
 			return true
 		end
