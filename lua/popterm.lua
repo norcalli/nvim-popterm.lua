@@ -67,10 +67,9 @@ function POPTERM(i)
 		terminals[i] = terminal
 	end
 
-	local term_buf = terminal.bufnr
 	local curbufnr = api.nvim_get_current_buf()
 	-- Hide the current terminal
-	if curbufnr == term_buf then
+	if curbufnr == terminal.bufnr then
 		-- TODO focus last win?
 		-- TODO save layout on close and restore for each terminal?
 		api.nvim_win_close(pop_win, false)
@@ -84,15 +83,14 @@ function POPTERM(i)
 		local new_term = false
 		-- Create the buffer if it was closed.
 		if not api.nvim_buf_is_loaded(terminal.bufnr) then
-			term_buf = api.nvim_create_buf(false, false)
-			assert(term_buf ~= 0, "Failed to create a buffer")
-			terminal.bufnr = term_buf
+			terminal.bufnr = api.nvim_create_buf(false, false)
+			assert(terminal.bufnr ~= 0, "Failed to create a buffer")
 			new_term = true
 		end
 
 		-- If the window is already a terminal window, then just switch buffers.
 		if buf_is_popterm(api.nvim_get_current_buf()) then
-			api.nvim_set_current_buf(term_buf)
+			api.nvim_set_current_buf(terminal.bufnr)
 		else
 			local uis = api.nvim_list_uis()
 
@@ -122,13 +120,13 @@ function POPTERM(i)
 		vim.schedule(nvim.ex.startinsert)
 
 		local label = string.format(config.label_format, i)
-		api.nvim_buf_clear_namespace(term_buf, namespace, 0, -1)
-		local label_line = math.max(api.nvim_buf_line_count(term_buf) - 2, 0)
-		api.nvim_buf_set_virtual_text(term_buf, namespace, label_line, {{label, 'PopTermLabel'}}, {})
+		api.nvim_buf_clear_namespace(terminal.bufnr, namespace, 0, -1)
+		local label_line = math.max(api.nvim_buf_line_count(terminal.bufnr) - 2, 0)
+		api.nvim_buf_set_virtual_text(terminal.bufnr, namespace, label_line, {{label, 'PopTermLabel'}}, {})
 
 		local timer = vim.loop.new_timer()
 		timer:start(config.label_timeout, 0, vim.schedule_wrap(function()
-			api.nvim_buf_clear_namespace(term_buf, namespace, 0, -1)
+			api.nvim_buf_clear_namespace(terminal.bufnr, namespace, 0, -1)
 			timer:close()
 		end))
 
