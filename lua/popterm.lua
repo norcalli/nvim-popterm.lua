@@ -59,6 +59,15 @@ end
 
 init()
 
+local function find_current_popterm()
+	local curbufnr = api.nvim_get_current_buf()
+	for i, term in pairs(terminals) do
+		if term.bufnr == curbufnr then
+			return i, term
+		end
+	end
+end
+
 local function flash_label(bufnr, label)
 	assert(type(label) == 'string')
 	api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
@@ -76,6 +85,16 @@ local function close_popwin()
 	if pop_win ~= -1 then
 		api.nvim_win_close(pop_win, false)
 		pop_win = -1
+	end
+end
+
+-- Swap the current popterm (if any) with the one at position i.
+function POPTERM_SWAP(i)
+	assert(type(i) == 'number')
+	local current_popterm_index = find_current_popterm()
+	if current_popterm_index and current_popterm_index ~= i then
+		terminals[i], terminals[current_popterm_index] = terminals[current_popterm_index], terminals[i]
+		flash_label(api.nvim_get_current_buf(), string.format(config.label_format, i))
 	end
 end
 
@@ -149,6 +168,16 @@ local mappings = {}
 for i = 1, 9 do
 	local key = ("<A-%d>"):format(i)
 	local value = { ("<Cmd>lua POPTERM(%d)<CR>"):format(i); noremap = true; }
+	mappings["n"..key] = value
+	mappings["t"..key] = value
+	mappings["i"..key] = value
+end
+local SHIFT_MAPPINGS = "!@#$%^&*("
+for i = 1, 9 do
+	-- TODO(ashkan): can this work on GUIs or nah?
+	-- local key = ("<A-S-%d>"):format(i)
+	local key = ("<A-%s>"):format(SHIFT_MAPPINGS:sub(i,i))
+	local value = { ("<Cmd>lua POPTERM_SWAP(%d)<CR>"):format(i); noremap = true; }
 	mappings["n"..key] = value
 	mappings["t"..key] = value
 	mappings["i"..key] = value
