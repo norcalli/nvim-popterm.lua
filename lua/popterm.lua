@@ -81,6 +81,20 @@ local function close_popwin()
 	end
 end
 
+local function terminal_is_alive(i)
+	return terminals[i] and api.nvim_buf_is_loaded(terminals[i].bufnr)
+end
+
+local function find_live_terminals()
+	local res = {}
+	for i in pairs(terminals) do
+		if terminal_is_alive(i) then
+			table.insert(res, i)
+		end
+	end
+	return res
+end
+
 function IS_POPTERM()
 	return buf_is_popterm(api.nvim_get_current_buf())
 end
@@ -106,6 +120,7 @@ function POPTERM(i)
 		terminal = { bufnr = -1; }
 		terminals[i] = terminal
 	end
+	terminal.last_used_time = os.clock()
 
 	local curbufnr = api.nvim_get_current_buf()
 	-- Hide the current terminal
@@ -165,6 +180,44 @@ function POPTERM(i)
 	end
 end
 
+-- POPTERM_NEXT will, if:
+-- - There are no popterms, create one at index 1.
+-- - There are popterms and they are hidden, focus the most recently used one.
+-- - We are in a popterm, find the next one in the ring and focus it.
+function POPTERM_NEXT(start)
+	start = start or find_current_terminal()
+	-- TODO(ashkan): find the closest valid index as a starting point if it's not
+	-- a terminal.
+	local live_terminals = find_live_terminals()
+	if not start then
+		if #live_terminals == 0 then
+			return POPTERM(1)
+		elseif #live_terminals == 1 then
+			return POPTERM(live_terminals[1])
+		else
+			-- Find the most recently used terminal.
+			local mru_index, mru_time = live_terminals[1], terminals[live_terminals[1]].last_used_time
+			for i = 2, #live_terminals do
+				local index = live_terminals[i]
+				local time = terminals[index].last_used_time
+				if mru_time < time then
+					mru_index, mru_time = index, time
+				end
+			end
+			return POPTERM(mru_index)
+		end
+	end
+	assert(terminal_is_alive(start), "Invalid starting point. Must be an active terminal")
+	if #live_terminals == 1 then
+		return flash_label(terminals[live_terminals[1]].bufnr, "No other terminals")
+	end
+	for i = 1, #live_terminals do
+		if live_terminals[i] == start then
+			return POPTERM(live_terminals[i%#live_terminals+1])
+		end
+	end
+end
+
 local mappings = {}
 for i = 1, 9 do
 	local key = ("<A-%d>"):format(i)
@@ -186,6 +239,13 @@ end
 do
 	local key = "<A-`>"
 	local value = { "<Cmd>lua POPTERM_HIDE()<CR>"; noremap = true; }
+	mappings["n"..key] = value
+	mappings["t"..key] = value
+	mappings["i"..key] = value
+end
+do
+	local key = "<A-Tab>"
+	local value = { "<Cmd>lua POPTERM_NEXT()<CR>"; noremap = true; }
 	mappings["n"..key] = value
 	mappings["t"..key] = value
 	mappings["i"..key] = value
