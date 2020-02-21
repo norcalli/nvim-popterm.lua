@@ -83,7 +83,7 @@ function POPTERM(i)
 		local new_term = false
 		-- Create the buffer if it was closed.
 		if not api.nvim_buf_is_loaded(terminal.bufnr) then
-			terminal.bufnr = api.nvim_create_buf(false, false)
+			terminal.bufnr = api.nvim_create_buf(true, false)
 			assert(terminal.bufnr ~= 0, "Failed to create a buffer")
 			new_term = true
 		end
