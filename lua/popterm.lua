@@ -2,23 +2,19 @@ local nvim = require 'popterm.nvim'
 local api = vim.api
 
 local M = {}
-
 local terminals = {}
-
-local function buf_is_popterm(bufnr)
-	for _, term in pairs(terminals) do
-		if term.bufnr == bufnr then
-			return true
-		end
-	end
-	return false
-end
-
 local pop_win = -1
 
-function IS_POPTERM()
-	return buf_is_popterm(api.nvim_get_current_buf())
-end
+local config = {
+	label_timeout = 5e2;
+	label_colors = { ctermfg = White; ctermbg = Red; guifg = "#eee"; guibg = "#a00000" };
+	label_format = "POPTERM %d";
+	window_width = 0.9;
+	window_height = 0.5;
+}
+
+local namespace = api.nvim_create_namespace('')
+-- local namespace_clear_command = string.format("autocmd InsertCharPre <buffer> ++once lua vim.api.nvim_buf_clear_namespace(0, %d, 0, -1)", namespace)
 
 function M._enforce_popterm_constraints()
 	local curbuf = api.nvim_get_current_buf()
@@ -29,18 +25,6 @@ function M._enforce_popterm_constraints()
 		api.nvim_set_current_buf(curbuf)
 	end
 end
-
-local config = {
-	label_timeout = 5e2;
-	label_colors = { ctermfg = White; ctermbg = Red; guifg = "#eee"; guibg = "#a00000" };
-	label_format = "POPTERM %d";
-	window_width = 0.9;
-	window_height = 0.5;
-
-}
-
-local namespace = api.nvim_create_namespace('')
--- local namespace_clear_command = string.format("autocmd InsertCharPre <buffer> ++once lua vim.api.nvim_buf_clear_namespace(0, %d, 0, -1)", namespace)
 
 local function init()
 	do
@@ -59,7 +43,16 @@ end
 
 init()
 
-local function find_current_popterm()
+local function buf_is_popterm(bufnr)
+	for _, term in pairs(terminals) do
+		if term.bufnr == bufnr then
+			return true
+		end
+	end
+	return false
+end
+
+local function find_current_terminal()
 	local curbufnr = api.nvim_get_current_buf()
 	for i, term in pairs(terminals) do
 		if term.bufnr == curbufnr then
@@ -88,10 +81,14 @@ local function close_popwin()
 	end
 end
 
+function IS_POPTERM()
+	return buf_is_popterm(api.nvim_get_current_buf())
+end
+
 -- Swap the current popterm (if any) with the one at position i.
 function POPTERM_SWAP(i)
 	assert(type(i) == 'number')
-	local current_popterm_index = find_current_popterm()
+	local current_popterm_index = find_current_terminal()
 	if current_popterm_index and current_popterm_index ~= i then
 		terminals[i], terminals[current_popterm_index] = terminals[current_popterm_index], terminals[i]
 		flash_label(api.nvim_get_current_buf(), string.format(config.label_format, i))
