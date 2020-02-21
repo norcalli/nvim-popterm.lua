@@ -16,33 +16,6 @@ local config = {
 local namespace = api.nvim_create_namespace('')
 -- local namespace_clear_command = string.format("autocmd InsertCharPre <buffer> ++once lua vim.api.nvim_buf_clear_namespace(0, %d, 0, -1)", namespace)
 
-function M._enforce_popterm_constraints()
-	local curbuf = api.nvim_get_current_buf()
-	local curwin = api.nvim_get_current_win()
-	if curwin == pop_win and not buf_is_popterm(curbuf) then
-		api.nvim_win_close(pop_win, false)
-		nvim.ex.vsplit()
-		api.nvim_set_current_buf(curbuf)
-	end
-end
-
-local function init()
-	do
-		local res = {}
-		for k, v in pairs(config.label_colors) do
-			table.insert(res, k.."="..v)
-		end
-		nvim.ex.highlight("PopTermLabel ", res)
-	end
-
-	nvim.ex.augroup("PopTerm")
-	nvim.ex.autocmd_()
-	nvim.ex.autocmd("BufEnter * lua require'popterm'._enforce_popterm_constraints()")
-	nvim.ex.augroup("END")
-end
-
-init()
-
 local function buf_is_popterm(bufnr)
 	for _, term in pairs(terminals) do
 		if term.bufnr == bufnr then
@@ -217,6 +190,33 @@ function POPTERM_NEXT(start)
 		end
 	end
 end
+
+function M._enforce_popterm_constraints()
+	local curbuf = api.nvim_get_current_buf()
+	local curwin = api.nvim_get_current_win()
+	if curwin == pop_win and not buf_is_popterm(curbuf) then
+		api.nvim_win_close(pop_win, false)
+		nvim.ex.vsplit()
+		api.nvim_set_current_buf(curbuf)
+	end
+end
+
+local function init()
+	do
+		local res = {}
+		for k, v in pairs(config.label_colors) do
+			table.insert(res, k.."="..v)
+		end
+		nvim.ex.highlight("PopTermLabel ", res)
+	end
+
+	nvim.ex.augroup("PopTerm")
+	nvim.ex.autocmd_()
+	nvim.ex.autocmd("BufEnter * lua require'popterm'._enforce_popterm_constraints()")
+	nvim.ex.augroup("END")
+end
+
+init()
 
 local mappings = {}
 for i = 1, 9 do
