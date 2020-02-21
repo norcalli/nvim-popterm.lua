@@ -59,6 +59,19 @@ end
 
 init()
 
+local function flash_label(bufnr, label)
+	assert(type(label) == 'string')
+	api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
+	local label_line = math.max(api.nvim_buf_line_count(bufnr) - 2, 0)
+	api.nvim_buf_set_virtual_text(bufnr, namespace, label_line, {{label, 'PopTermLabel'}}, {})
+
+	local timer = vim.loop.new_timer()
+	timer:start(config.label_timeout, 0, vim.schedule_wrap(function()
+		api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
+		timer:close()
+	end))
+end
+
 function POPTERM(i)
 	assert(type(i) == 'number', "need an index for POPTERM")
 	local terminal = terminals[i]
@@ -120,16 +133,7 @@ function POPTERM(i)
 		vim.schedule(nvim.ex.startinsert)
 
 		local label = string.format(config.label_format, i)
-		api.nvim_buf_clear_namespace(terminal.bufnr, namespace, 0, -1)
-		local label_line = math.max(api.nvim_buf_line_count(terminal.bufnr) - 2, 0)
-		api.nvim_buf_set_virtual_text(terminal.bufnr, namespace, label_line, {{label, 'PopTermLabel'}}, {})
-
-		local timer = vim.loop.new_timer()
-		timer:start(config.label_timeout, 0, vim.schedule_wrap(function()
-			api.nvim_buf_clear_namespace(terminal.bufnr, namespace, 0, -1)
-			timer:close()
-		end))
-
+		flash_label(terminal.bufnr, label)
 		-- nvim.command(namespace_clear_command)
 	end
 end
