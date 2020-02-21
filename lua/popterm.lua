@@ -1,4 +1,5 @@
 local nvim = require 'popterm.nvim'
+local api = vim.api
 
 local M = {}
 
@@ -16,16 +17,16 @@ end
 local pop_win = -1
 
 function IS_POPTERM()
-	return buf_is_popterm(nvim.get_current_buf())
+	return buf_is_popterm(api.nvim_get_current_buf())
 end
 
 function M._enforce_popterm_constraints()
-	local curbuf = nvim.get_current_buf()
-	local curwin = nvim.get_current_win()
+	local curbuf = api.nvim_get_current_buf()
+	local curwin = api.nvim_get_current_win()
 	if curwin == pop_win and not buf_is_popterm(curbuf) then
-		nvim.win_close(pop_win, false)
+		api.nvim_win_close(pop_win, false)
 		nvim.ex.vsplit()
-		nvim.set_current_buf(curbuf)
+		api.nvim_set_current_buf(curbuf)
 	end
 end
 
@@ -38,7 +39,7 @@ local config = {
 
 }
 
-local namespace = nvim.create_namespace('')
+local namespace = api.nvim_create_namespace('')
 -- local namespace_clear_command = string.format("autocmd InsertCharPre <buffer> ++once lua vim.api.nvim_buf_clear_namespace(0, %d, 0, -1)", namespace)
 
 local function init()
@@ -67,33 +68,33 @@ function POPTERM(i)
 	end
 
 	local term_buf = terminal.bufnr
-	local curbufnr = nvim.get_current_buf()
+	local curbufnr = api.nvim_get_current_buf()
 	-- Hide the current terminal
 	if curbufnr == term_buf then
 		-- TODO focus last win?
 		-- TODO save layout on close and restore for each terminal?
-		nvim.win_close(pop_win, false)
+		api.nvim_win_close(pop_win, false)
 	else
 		-- Create/switch the window if it's closed.
 
-		if nvim.win_is_valid(pop_win) then
-			nvim.set_current_win(pop_win)
+		if api.nvim_win_is_valid(pop_win) then
+			api.nvim_set_current_win(pop_win)
 		end
 
 		local new_term = false
 		-- Create the buffer if it was closed.
-		if not nvim.buf_is_loaded(term_buf) then
-			term_buf = nvim.create_buf(false, false)
+		if not api.nvim_buf_is_loaded(terminal.bufnr) then
+			term_buf = api.nvim_create_buf(false, false)
 			assert(term_buf ~= 0, "Failed to create a buffer")
 			terminal.bufnr = term_buf
 			new_term = true
 		end
 
 		-- If the window is already a terminal window, then just switch buffers.
-		if buf_is_popterm(nvim.get_current_buf()) then
-			nvim.set_current_buf(term_buf)
+		if buf_is_popterm(api.nvim_get_current_buf()) then
+			api.nvim_set_current_buf(term_buf)
 		else
-			local uis = nvim.list_uis()
+			local uis = api.nvim_list_uis()
 
 			local opts = {
 				relative = 'editor';
@@ -111,8 +112,8 @@ function POPTERM(i)
 			end
 			opts.col = (uis[1].width - opts.width) / 2
 			opts.row = (uis[1].height - opts.height) / 2
-			-- nvim.win_set_option(win, 'winfixheight', true)
-			pop_win = nvim.open_win(term_buf, true, opts)
+			-- api.nvim_win_set_option(win, 'winfixheight', true)
+			pop_win = api.nvim_open_win(terminal.bufnr, true, opts)
 		end
 
 		if new_term then
@@ -121,13 +122,13 @@ function POPTERM(i)
 		vim.schedule(nvim.ex.startinsert)
 
 		local label = string.format(config.label_format, i)
-		nvim.buf_clear_namespace(term_buf, namespace, 0, -1)
-		local label_line = math.max(nvim.buf_line_count(term_buf) - 2, 0)
-		nvim.buf_set_virtual_text(term_buf, namespace, label_line, {{label, 'PopTermLabel'}}, {})
+		api.nvim_buf_clear_namespace(term_buf, namespace, 0, -1)
+		local label_line = math.max(api.nvim_buf_line_count(term_buf) - 2, 0)
+		api.nvim_buf_set_virtual_text(term_buf, namespace, label_line, {{label, 'PopTermLabel'}}, {})
 
 		local timer = vim.loop.new_timer()
 		timer:start(config.label_timeout, 0, vim.schedule_wrap(function()
-			nvim.buf_clear_namespace(term_buf, namespace, 0, -1)
+			api.nvim_buf_clear_namespace(term_buf, namespace, 0, -1)
 			timer:close()
 		end))
 
