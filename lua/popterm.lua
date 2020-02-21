@@ -98,6 +98,10 @@ function POPTERM_SWAP(i)
 	end
 end
 
+function POPTERM_HIDE()
+	close_popwin()
+end
+
 function POPTERM(i)
 	assert(type(i) == 'number', "need an index for POPTERM")
 	local terminal = terminals[i]
@@ -178,6 +182,13 @@ for i = 1, 9 do
 	-- local key = ("<A-S-%d>"):format(i)
 	local key = ("<A-%s>"):format(SHIFT_MAPPINGS:sub(i,i))
 	local value = { ("<Cmd>lua POPTERM_SWAP(%d)<CR>"):format(i); noremap = true; }
+	mappings["n"..key] = value
+	mappings["t"..key] = value
+	mappings["i"..key] = value
+end
+do
+	local key = "<A-`>"
+	local value = { "<Cmd>lua POPTERM_HIDE()<CR>"; noremap = true; }
 	mappings["n"..key] = value
 	mappings["t"..key] = value
 	mappings["i"..key] = value
