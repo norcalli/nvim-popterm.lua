@@ -175,3 +175,5 @@ M.setup = function()
 end
 
 return M
+
+-- vim:noet ts=3 sw=3
