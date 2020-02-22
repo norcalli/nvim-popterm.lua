@@ -72,6 +72,14 @@ function IS_POPTERM()
 	return buf_is_popterm(api.nvim_get_current_buf())
 end
 
+function POPTERM_NEW()
+	i = 1
+	while terminal_is_alive(i) do
+		i = i + 1
+	end
+	return POPTERM(i)
+end
+
 -- Swap the current popterm (if any) with the one at position i.
 function POPTERM_SWAP(i)
 	assert(type(i) == 'number')
@@ -246,6 +254,13 @@ end
 do
 	local key = "<A-Tab>"
 	local value = { "<Cmd>lua POPTERM_NEXT()<CR>"; noremap = true; }
+	mappings["n"..key] = value
+	mappings["t"..key] = value
+	mappings["i"..key] = value
+end
+do
+	local key = "<A-~>"
+	local value = { "<Cmd>lua POPTERM_NEW()<CR>"; noremap = true; }
 	mappings["n"..key] = value
 	mappings["t"..key] = value
 	mappings["i"..key] = value
