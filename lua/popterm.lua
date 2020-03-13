@@ -11,6 +11,7 @@ local config = {
 	window_width = 0.9;
 	window_height = 0.5;
 }
+M.config = config
 
 local namespace = api.nvim_create_namespace('')
 -- local namespace_clear_command = string.format("autocmd InsertCharPre <buffer> ++once lua vim.api.nvim_buf_clear_namespace(0, %d, 0, -1)", namespace)
@@ -144,7 +145,7 @@ function POPTERM_SWAP(i)
 	local current_popterm_index = find_current_terminal()
 	if current_popterm_index and current_popterm_index ~= i then
 		terminals[i], terminals[current_popterm_index] = terminals[current_popterm_index], terminals[i]
-		flash_label(api.nvim_get_current_buf(), string.format(config.label_format, i))
+		flash_label(api.nvim_get_current_buf(), config.label_format:format(i))
 	end
 end
 
@@ -335,6 +336,7 @@ M.setup = function()
 	nvim_apply_mappings(mappings)
 end
 
+-- Exports logger/mappings/setup/config
 return M
 
 -- vim:noet ts=3 sw=3
