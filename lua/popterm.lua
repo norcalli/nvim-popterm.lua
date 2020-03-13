@@ -251,6 +251,19 @@ function POPTERM_NEXT(start)
 	end
 end
 
+function POPTERM_PACK()
+	local live_terminals = find_live_terminals()
+	if #live_terminals == 0 then return end
+	local new_terminals = {}
+	for i, old_index in ipairs(live_terminals) do
+		new_terminals[i] = terminals[old_index]
+	end
+	terminals = new_terminals
+	local idx = find_current_terminal()
+	if idx then
+		flash_label(api.nvim_get_current_buf(), config.label_format:format(idx))
+	end
+end
 
 -- Create mapping definitions.
 do
